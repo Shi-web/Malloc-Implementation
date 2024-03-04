@@ -77,6 +77,11 @@ directory.
 The report must be submitted as a PDF file.  Any other formats will result in a grade of 0 for the report.
 The rubric for grading your report is contained within the rubric directory.
 
+
+## Hint
+
+you will see an extra malloc of 1024 bytes in your statistics. This is the system allocatng memory for the printf statement.
+
 ## Important Warning
 This program involves a lot of pointers and pointer arithmetic. You will seg fault your code if you are not careful with your pointers. Verify ALL pointers pointers before you
 dereference them.
