@@ -169,6 +169,9 @@ struct _block *growHeap(struct _block *last, size_t size)
  */
 void *malloc(size_t size) 
 {
+   
+   num_requested = num_requested + size;
+   //max_heap = max_heap 
 
    if( atexit_registered == 0 )
    {
@@ -186,6 +189,8 @@ void *malloc(size_t size)
    }
 
    /* Look for free _block.  If a free block isn't found then we need to grow our heap. */
+   //printf("Before num_requested = %d\n",num_mallocs);
+   num_mallocs++;
 
    struct _block *last = heapList;
    struct _block *next = findFreeBlock(&last, size);
@@ -196,11 +201,36 @@ void *malloc(size_t size)
             If the leftover space in the new block is less than the sizeof(_block)+4 then
             don't split the block.
    */
+   if (next && next->size)
+   {
+
+   
+      if ((next->size) > size)
+      {
+         size_t remainingSize = next->size - size;
+         if (remainingSize>(sizeof(struct _block)+4))
+         {
+               struct _block *newBlock = (struct _block *)((char *)next + size);
+               newBlock->size = remainingSize - sizeof(struct _block);
+               newBlock->next = next->next;
+               newBlock->free = true;
+
+               next->size = size;
+               next->next = newBlock;
+
+               num_splits++;
+      
+         }
+
+      }
+   }
+
 
    /* Could not find free _block, so grow heap */
    if (next == NULL) 
    {
       next = growHeap(last, size);
+      num_grows++;
    }
 
    /* Could not find free _block or grow heap, so just return NULL */
@@ -234,13 +264,38 @@ void free(void *ptr)
    }
 
    /* Make _block as free */
+   num_frees++;
    struct _block *curr = BLOCK_HEADER(ptr);
    assert(curr->free == 0);
    curr->free = true;
 
-   /* TODO: Coalesce free _blocks.  If the next block or previous block 
+     /* Check if the previous block is free */
+   struct _block *prev = heapList;  // Start from the beginning of the heap
+   while (prev && prev->next != curr) {
+      prev = prev->next;
+   }
+
+   if (prev && prev->free) 
+   {
+      /* Combine with the previous block */
+      prev->size += curr->size;
+      prev->next = curr->next;
+      num_coalesces++;
+      curr = prev;  // Update curr to the combined block
+   }
+
+   /* TODO: Coalesce free _blocks.  If the next block 
             are free then combine them with this block being freed.
    */
+   if (curr && curr->next)
+   {
+      struct _block *next = curr->next;
+      curr->size += next->size;
+      curr->next = (next)->next;
+      num_coalesces++;
+      next = curr;
+   }
+
 }
 
 void *calloc( size_t nmemb, size_t size )
