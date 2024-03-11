@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
+#include <limits.h>
 
 #define ALIGN4(s)         (((((s) - 1) >> 2) << 2) + 4)
 #define BLOCK_DATA(b)     ((b) + 1)
@@ -71,10 +72,9 @@ struct _block *heapList = NULL; /* Free list to track the _blocks available */
 struct _block *findFreeBlock(struct _block **last, size_t size) 
 {
    struct _block *curr = heapList;
-
+  
 #if defined FIT && FIT == 0
    /* First fit */
-   //
    // While we haven't run off the end of the linked list and
    // while the current node we point to isn't free or isn't big enough
    // then continue to iterate over the list.  This loop ends either
@@ -92,16 +92,71 @@ struct _block *findFreeBlock(struct _block **last, size_t size)
 // \TODO Put your Best Fit code in this #ifdef block
 #if defined BEST && BEST == 0
    /** \TODO Implement best fit here */
+   struct _block *bestFit = NULL;
+   size_t minSize = SIZE_MAX; // Initialize minSize to the maximum possible size
+
+   while (curr) 
+   {
+      if (curr->free && curr->size >= size && curr->size < minSize) 
+      {
+         bestFit = curr;
+         minSize = curr->size;
+      }
+
+      *last = curr;
+      curr = curr->next;
+   }
+
+   return bestFit;
 #endif
 
-// \TODO Put your Worst Fit code in this #ifdef block
+
+
 #if defined WORST && WORST == 0
    /** \TODO Implement worst fit here */
+   size_t maxSize = 0;
+   struct _block *worstFit = NULL;
+   while (curr) 
+   {
+      if (curr->free && curr->size >= size && curr->size > maxSize) 
+      {
+         worstFit = curr;
+         maxSize = curr->size;
+      }
+
+      *last = curr;
+      curr = curr->next;
+   }
+
+   return worstFit;
+   
 #endif
 
 // \TODO Put your Next Fit code in this #ifdef block
 #if defined NEXT && NEXT == 0
-   /** \TODO Implement next fit here */
+   static struct _block *lastChecked = NULL;  // Keep track of the last checked block 
+   struct _block *current = (lastChecked != NULL) ? lastChecked->next : heapList;
+
+    while (current) 
+    {
+        if (current->free && current->size >= size) 
+        {
+            lastChecked = current;  // Update the last checked block for the next iteration
+            *last = current;
+            return current;
+        }
+
+        *last = current;
+        current = current->next;
+    }
+
+    // If no free block is found in the remaining list, start from the beginning
+    lastChecked = NULL;
+
+    return NULL;
+
+
+  
 #endif
 
    return curr;
