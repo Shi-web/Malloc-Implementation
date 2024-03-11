@@ -121,6 +121,7 @@ struct _block *findFreeBlock(struct _block **last, size_t size)
  */
 struct _block *growHeap(struct _block *last, size_t size) 
 {
+   num_grows++;
    /* Request more space from OS */
    struct _block *curr = (struct _block *)sbrk(0);
    struct _block *prev = (struct _block *)sbrk(sizeof(struct _block) + size);
@@ -190,8 +191,7 @@ void *malloc(size_t size)
 
    /* Look for free _block.  If a free block isn't found then we need to grow our heap. */
    //printf("Before num_requested = %d\n",num_mallocs);
-   num_mallocs++;
-
+  
    struct _block *last = heapList;
    struct _block *next = findFreeBlock(&last, size);
 
@@ -204,7 +204,7 @@ void *malloc(size_t size)
    if (next && next->size)
    {
 
-   
+      num_reuses++;
       if ((next->size) > size)
       {
          size_t remainingSize = next->size - size;
@@ -230,7 +230,8 @@ void *malloc(size_t size)
    if (next == NULL) 
    {
       next = growHeap(last, size);
-      num_grows++;
+      max_heap = max_heap+num_requested;
+      
    }
 
    /* Could not find free _block or grow heap, so just return NULL */
@@ -243,7 +244,9 @@ void *malloc(size_t size)
    next->free = false;
 
    /* Return data address associated with _block to the user */
+   num_mallocs++;
    return BLOCK_DATA(next);
+ 
 }
 
 /*
@@ -269,6 +272,8 @@ void free(void *ptr)
    assert(curr->free == 0);
    curr->free = true;
 
+
+ 
      /* Check if the previous block is free */
    struct _block *prev = heapList;  // Start from the beginning of the heap
    while (prev && prev->next != curr) {
@@ -294,6 +299,17 @@ void free(void *ptr)
       curr->next = (next)->next;
       num_coalesces++;
       next = curr;
+   }
+
+
+   //For counting the number of blocks
+   struct _block *LinkedList = heapList; 
+   num_blocks = 0;
+   while (LinkedList != NULL) 
+   {
+      num_blocks++;
+      LinkedList = LinkedList->next;  // Move to the next block
+      
    }
 
 }
