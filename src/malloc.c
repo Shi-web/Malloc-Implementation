@@ -230,7 +230,7 @@ void *malloc(size_t size)
    if (next == NULL) 
    {
       next = growHeap(last, size);
-      max_heap = max_heap+num_requested;
+      max_heap = max_heap+size;
       
    }
 
@@ -316,14 +316,60 @@ void free(void *ptr)
 
 void *calloc( size_t nmemb, size_t size )
 {
-   // \TODO Implement calloc
-   return NULL;
+   size_t totalSize = nmemb * size;
+
+    // Check for overflow
+    if (nmemb != 0 && totalSize / nmemb != size) {
+        return NULL;
+    }
+
+    // Allocate memory using malloc
+    void *ptr = malloc(totalSize);
+
+    if (ptr != NULL) {
+        // Clear the allocated memory to zero
+        memset(ptr, 0, totalSize);
+    }
+
+    return ptr;
 }
 
 void *realloc( void *ptr, size_t size )
 {
-   // \TODO Implement realloc
-   return NULL;
+   // If ptr is NULL, this is equivalent to malloc(size)
+    if (ptr == NULL) {
+        return malloc(size);
+    }
+
+    // If size is zero, this is equivalent to free(ptr)
+    if (size == 0) {
+        free(ptr);
+        return NULL;
+    }
+
+    // Retrieve the current _block from the given pointer
+    struct _block *curr = BLOCK_HEADER(ptr);
+
+    // Check if the current _block can accommodate the new size
+    if (curr->size >= size) {
+        // The current _block is large enough, no need to allocate new memory
+        return ptr;
+    }
+
+    // Allocate a new _block of the requested size
+    void *newPtr = malloc(size);
+
+    if (newPtr != NULL) {
+        // Copy the data from the old _block to the new _block
+       memcpy(newPtr, ptr, curr->size);
+
+        // Free the old _block
+        free(ptr);
+
+        return newPtr;
+    }
+
+    return NULL; // Allocation or copying failed
 }
 
 
